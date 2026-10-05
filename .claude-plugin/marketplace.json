@@ -1,0 +1,21 @@
+{
+  "name": "files",
+  "owner": {
+    "name": "manikosto",
+    "url": "https://github.com/manikosto"
+  },
+  "description": "A file explorer and editor pane for Claude Code: the project tree, fuzzy file search, and an editor with highlighting, undo and save",
+  "plugins": [
+    {
+      "name": "files",
+      "description": "A file explorer and editor pane for Claude Code: the project tree, fuzzy file search, and an editor with highlighting, undo and save",
+      "source": "./",
+      "category": "productivity",
+      "tags": [
+        "mod",
+        "pane",
+        "editor"
+      ]
+    }
+  ]
+}
