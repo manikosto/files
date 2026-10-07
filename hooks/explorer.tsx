@@ -258,7 +258,7 @@ const Explorer: ClientModule<FilesModel, State> = (props, surface) => {
     <Box flexDirection="column" width={W} height={H}>
       <Box key="head" flexDirection="row" justifyContent="space-between" width={W}>
         <Text wrap="truncate"><Text color={C.accent} bold>Files </Text><Text color={s.dirty ? C.dirty : C.dim}>{head}</Text></Text>
-        {st ? <Text color={st.kind === 'ok' ? C.ok : st.kind === 'err' ? C.err : C.info} wrap="truncate">{st.text}</Text> : null}
+        {st ? <Text color={st.kind === 'ok' ? C.ok : st.kind === 'err' ? C.err : C.info} wrap="truncate">{st.text}</Text> : props.size ? <Text color={C.faint} wrap="truncate">{props.size}</Text> : null}
       </Box>
       <Box key="body" flexDirection="row" height={bodyH}>
         <Box flexDirection="column" width={treeW}>

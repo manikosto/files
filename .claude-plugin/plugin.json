@@ -1,6 +1,6 @@
 {
   "name": "files",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A file explorer and editor pane for Claude Code: the project tree, fuzzy file search, and an editor with highlighting, undo and save",
   "types": "./types/index.d.ts",
   "userConfig": {
@@ -8,7 +8,7 @@
       "type": "number",
       "title": "Pane width (%)",
       "description": "Share of the terminal the docked pane asks for (drag its edge to change it for the session)",
-      "default": 66
+      "default": 60
     }
   }
 }

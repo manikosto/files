@@ -11,7 +11,7 @@ const MAX_READ = 2_000_000
 const MAX_ENTRIES = 600
 const MAX_MATCHES = 200
 
-let share = 0.66
+let share = 0.6
 let lastTerm = 0
 let rootReal = ''
 let fileList: { at: number; paths: string[] } | null = null
@@ -191,9 +191,12 @@ async function watchTab($: EngineInterface) {
 
 export const register: Register = (on, options) => {
   const pct = Number(options.widthPercent)
-  share = Number.isFinite(pct) && pct >= 20 && pct <= 90 ? pct / 100 : 0.66
+  share = Number.isFinite(pct) && pct >= 20 && pct <= 90 ? pct / 100 : 0.6
 
   on('session.start', async ($, e, next) => {
+    // a width set with /files width wins over the setting
+    const kept = Number(await $.store.get('share').catch(() => undefined))
+    if (Number.isFinite(kept) && kept >= 0.2 && kept <= 0.9) share = kept
     await setRoot($, e.cwd)
     $.clock.every(800, () => { void watchTab($) })
     await $.command.register({ name: 'files', description: 'Open the file explorer and editor', argumentHint: '[file or folder]' })
@@ -204,10 +207,24 @@ export const register: Register = (on, options) => {
     lastTerm = e.presentation.columns
     termCols = lastTerm
     const arg = e.args.trim()
-    if (!arg && (await $.ui.panes()).some(p => p.id === PANE && p.isShown)) {
+    // /files width 60: the share of the terminal, kept across sessions, applied now from the person's command
+    const w = /^width\s+(\d{2})%?$/.exec(arg)
+    if (w) {
+      const pct = Math.max(20, Math.min(90, Number(w[1])))
+      share = pct / 100
+      await $.store.set('share', share)
+      const want = Math.max(MIN_COLS, Math.round(termCols * share))
+      const r = await $.ui.open(openArgs(termCols))
+      $.ui.invalidate('ui.render')
+      return { text: `Files asks for ${pct}% (${want} of ${termCols} columns)${r.isPlaced ? '' : `; waits: ${r.reason ?? 'no room'}`}. If the pane stays narrower, a width you dragged by hand wins: drag its edge once.` }
+    }
+    if (!arg && wasShown) {
       await $.ui.close({ id: PANE })
+      wasShown = false
       return { text: 'File explorer closed.' }
     }
+    // open first, straight from the person's command, so it counts as theirs (placed below 144 columns too)
+    const opened = await $.ui.open(openArgs(lastTerm))
     if (arg) {
       const cwd = await $.session.cwd()
       const abs = arg.startsWith('/') ? arg : arg.startsWith('~/') ? `${(await $.env.get('HOME')) ?? ''}${arg.slice(1)}` : `${cwd}/${arg}`
@@ -224,7 +241,7 @@ export const register: Register = (on, options) => {
         if (model.file && !model.file.readOnly) loadedText.set(rel, model.file.text)
       } else return { text: `No such file or folder: ${arg}` }
     }
-    const r = await $.ui.open(openArgs(lastTerm))
+    const r = opened
     $.ui.invalidate('ui.render')
     return { text: r.isPlaced ? 'File explorer opened. Click into it to type; Esc gives the keys back.' : `File explorer waits: ${r.reason ?? 'no room'}` }
   })
@@ -272,13 +289,8 @@ export const register: Register = (on, options) => {
     const props = e.props as { bodyColumns?: number; scroll?: { bodyRows?: number } }
     const cols = Math.max(30, props.bodyColumns ?? e.viewport?.columns ?? 80)
     const rows = Math.max(8, props.scroll?.bodyRows ?? e.viewport?.rows ?? 30)
-    const term = e.viewport?.columns
-    if (term && props.bodyColumns && term > props.bodyColumns + 4) termCols = term
-    if (term && props.bodyColumns && term > props.bodyColumns + 4 && term !== lastTerm) {
-      lastTerm = term
-      const want = Math.max(MIN_COLS, Math.round(term * share))
-      if (Math.abs(want - props.bodyColumns) > 2) $.clock.after(0, () => { void $.ui.open(openArgs(term)) })
-    }
+    // e.viewport is the transcript beside the dock, not the terminal: the terminal's width comes from commands
+    if (props.bodyColumns) model.size = `${props.bodyColumns} cols${termCols ? ` · asks ${Math.round(share * 100)}% of ${termCols}` : ''}`
     if (!Client) return <Text dimColor>The file explorer needs the terminal or desktop app.</Text>
     return <Client key="explorer" module="./explorer.tsx" props={{ ...model }} width={cols} height={rows} />
   })

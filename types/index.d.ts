@@ -18,6 +18,8 @@ export type FilesModel = {
   status: FilesStatus | null
   matches: { q: string; paths: string[] } | null
   reveal: number
+  // the pane's width against the terminal's, shown faint in the header
+  size?: string
 }
 
 // What the surface module posts to the hooks module.
